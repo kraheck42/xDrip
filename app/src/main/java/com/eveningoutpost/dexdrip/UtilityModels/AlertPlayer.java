@@ -102,6 +102,17 @@ public class AlertPlayer {
     final static int ALERT_PROFILE_VIBRATE_ONLY = 4;
     final static int ALERT_PROFILE_SILENT = 5;
 
+    final static int ALERT_PROFILE_VOLUME_BASE = 10;
+    final static int ALERT_PROFILE_VOLUME_10 = 11;
+    final static int ALERT_PROFILE_VOLUME_20 = 12;
+    final static int ALERT_PROFILE_VOLUME_30 = 13;
+    final static int ALERT_PROFILE_VOLUME_40 = 14;
+    final static int ALERT_PROFILE_VOLUME_50 = 15;
+    final static int ALERT_PROFILE_VOLUME_60 = 16;
+    final static int ALERT_PROFILE_VOLUME_70 = 17;
+    final static int ALERT_PROFILE_VOLUME_80 = 18;
+    final static int ALERT_PROFILE_VOLUME_90 = 19;
+
     final static int  MAX_VIBRATING = 2;
     final static int  MAX_ASCENDING = 5;
 
@@ -380,6 +391,18 @@ public class AlertPlayer {
             Log.i(TAG, "getAlertProfile returning ALERT_PROFILE_SILENT");
             return ALERT_PROFILE_SILENT;
         }
+        if(profile.startsWith("volume_"))
+        {
+            int volume = 10;
+            try {
+                volume = Integer.parseInt(profile.substring(7));
+                volume = Math.max(10, Math.min(90, volume));
+            } catch (Exception e) {
+                Log.wtf(TAG, "getAlertProfile unknown volume value " + profile);
+            }
+            Log.i(TAG, "getAlertProfile returning ALERT_PROFILE_VOLUME_xx (" + volume + ")");
+            return ALERT_PROFILE_VOLUME_BASE + (volume / 10);
+        }
         Log.wtf(TAG, "getAlertProfile unknown value " + profile + " ALERT_PROFILE_ASCENDING");
         return ALERT_PROFILE_ASCENDING;
 
@@ -433,6 +456,8 @@ public class AlertPlayer {
                 volumeFrac = Math.min(volumeFrac, 1);
                 if(profile == ALERT_PROFILE_MEDIUM) {
                     volumeFrac = (float)0.7;
+                } else if ((profile > ALERT_PROFILE_VOLUME_BASE) && (profile <= ALERT_PROFILE_VOLUME_90)) {
+                    volumeFrac = (float) ((profile - ALERT_PROFILE_VOLUME_BASE) * 0.1);
                 }
                 Log.d(TAG, "Vibrate volumeFrac = " + volumeFrac);
                 boolean isRingTone = EditAlertActivity.isPathRingtone(ctx, alert.mp3_file);

@@ -117,6 +117,15 @@
         <item>Ascending volume</item>
         <item>Vibrate only</item>
         <item>Silent</item>
+        <item>Volume 10\uff05</item>
+        <item>Volume 20\uff05</item>
+        <item>Volume 30\uff05</item>
+        <item>Volume 40\uff05</item>
+        <item>Volume 50\uff05</item>
+        <item>Volume 60\uff05</item>
+        <item>Volume 70\uff05</item>
+        <item>Volume 80\uff05</item>
+        <item>Volume 90\uff05</item>
     </string-array>
 
     <string-array name="BgAlertProfileValues">
@@ -125,6 +134,15 @@
         <item>ascending</item>
         <item>vibrate only</item>
         <item>Silent</item>
+        <item>volume_10</item>
+        <item>volume_20</item>
+        <item>volume_30</item>
+        <item>volume_40</item>
+        <item>volume_50</item>
+        <item>volume_60</item>
+        <item>volume_70</item>
+        <item>volume_80</item>
+        <item>volume_90</item>
     </string-array>
 
     <string-array name="risingEntries">

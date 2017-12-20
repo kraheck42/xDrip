@@ -40,5 +40,14 @@
         <item>Ansteigende Lautstärke</item>
         <item>Nur vibrieren</item>
         <item>Lautlos</item>
+        <item>Lautstärke 10\uff05</item>
+        <item>Lautstärke 20\uff05</item>
+        <item>Lautstärke 30\uff05</item>
+        <item>Lautstärke 40\uff05</item>
+        <item>Lautstärke 50\uff05</item>
+        <item>Lautstärke 60\uff05</item>
+        <item>Lautstärke 70\uff05</item>
+        <item>Lautstärke 80\uff05</item>
+        <item>Lautstärke 90\uff05</item>
     </string-array>
 </resources>
