@@ -468,15 +468,10 @@ public class AlertPlayer {
                 // Before this, we only vibrate...
                 float volumeFrac = (float) (minsFromStartPlaying - MAX_VIBRATING_MINUTES) / (MAX_ASCENDING_MINUTES - MAX_VIBRATING_MINUTES);
                 volumeFrac = Math.min(volumeFrac, 1);
-<<<<<<< HEAD
                 if(profile == ALERT_PROFILE_MEDIUM) {
                     volumeFrac = (float)0.7;
                 } else if ((profile > ALERT_PROFILE_VOLUME_BASE) && (profile <= ALERT_PROFILE_VOLUME_90)) {
                     volumeFrac = (float) ((profile - ALERT_PROFILE_VOLUME_BASE) * 0.1);
-=======
-                if (profile == ALERT_PROFILE_MEDIUM) {
-                    volumeFrac = (float) 0.7;
->>>>>>> upstream/master
                 }
                 Log.d(TAG, "VibrateNotifyMakeNoise volumeFrac = " + volumeFrac);
                 boolean isRingTone = EditAlertActivity.isPathRingtone(context, alert.mp3_file);
