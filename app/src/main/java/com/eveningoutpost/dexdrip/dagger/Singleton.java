@@ -47,12 +47,20 @@ public class Singleton extends SingletonHotel {
     Lazy<BaseWebService> webServiceSgv;
 
     @Inject
+    @Named("WebServiceStatus")
+    Lazy<BaseWebService> webServiceStatus;
+
+    @Inject
     @Named("WebServiceSteps")
     Lazy<BaseWebService> webServiceSteps;
 
     @Inject
     @Named("WebServiceHeart")
     Lazy<BaseWebService> webServiceHeart;
+
+    @Inject
+    @Named("WebServiceSync")
+    Lazy<BaseWebService> webServiceSync;
 
     private Singleton() {
         super(Singleton.class);
