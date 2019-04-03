@@ -40,13 +40,16 @@ public class DexCollectionHelper {
                 // intentional fall thru
 
             case DexcomG5:
+                final String pref = "dex_txid";
                 textSettingDialog(activity,
-                        "dex_txid", activity.getString(R.string.dexcom_transmitter_id),
+                        pref, activity.getString(R.string.dexcom_transmitter_id),
                         activity.getString(R.string.enter_your_transmitter_id_exactly),
                         InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
                         new Runnable() {
                             @Override
                             public void run() {
+                                // InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS does not seem functional here
+                                Pref.setString(pref, Pref.getString(pref, "").toUpperCase());
                                 Home.staticRefreshBGCharts();
                                 CollectionServiceStarter.restartCollectionServiceBackground();
                             }
@@ -67,6 +70,21 @@ public class DexCollectionHelper {
                 break;
 
 
+            case NSFollow:
+                textSettingDialog(activity,
+                        "nsfollow_url", "Nightscout Follow URL",
+                        "Web address for following",
+                        InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                Home.staticRefreshBGCharts();
+                                CollectionServiceStarter.restartCollectionServiceBackground();
+                            }
+                        });
+                break;
+
+
             case LimiTTer:
                 bluetoothScanIfNeeded();
                 break;
@@ -79,14 +97,17 @@ public class DexCollectionHelper {
                 bluetoothScanIfNeeded();
                 break;
 
+            case Medtrum:
+                bluetoothScanIfNeeded();
+                break;
 
-                // TODO G4 Share Receiver
+            // TODO G4 Share Receiver
 
-                // TODO Parakeet / Wifi ??
+            // TODO Parakeet / Wifi ??
 
-                // TODO Bluetooth devices without active device -> bluetooth scan
+            // TODO Bluetooth devices without active device -> bluetooth scan
 
-                // TODO Helper apps not installed? Prompt for installation
+            // TODO Helper apps not installed? Prompt for installation
 
         }
 

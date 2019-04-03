@@ -20,6 +20,7 @@ import com.eveningoutpost.dexdrip.ImportedLibraries.dexcom.records.EGVRecord;
 import com.eveningoutpost.dexdrip.ImportedLibraries.dexcom.records.SensorRecord;
 import com.eveningoutpost.dexdrip.Models.UserError.Log;
 import com.eveningoutpost.dexdrip.R;
+import com.eveningoutpost.dexdrip.Services.Ob1G5CollectionService;
 import com.eveningoutpost.dexdrip.Services.SyncService;
 import com.eveningoutpost.dexdrip.ShareModels.ShareUploadableBg;
 import com.eveningoutpost.dexdrip.UtilityModels.BgGraphBuilder;
@@ -29,6 +30,7 @@ import com.eveningoutpost.dexdrip.UtilityModels.Inevitable;
 import com.eveningoutpost.dexdrip.UtilityModels.Notifications;
 import com.eveningoutpost.dexdrip.UtilityModels.Pref;
 import com.eveningoutpost.dexdrip.UtilityModels.UploaderQueue;
+import com.eveningoutpost.dexdrip.UtilityModels.WholeHouse;
 import com.eveningoutpost.dexdrip.calibrations.CalibrationAbstract;
 import com.eveningoutpost.dexdrip.messages.BgReadingMessage;
 import com.eveningoutpost.dexdrip.messages.BgReadingMultiMessage;
@@ -249,20 +251,18 @@ public class BgReading extends Model implements ShareUploadableBg {
     }
 
     public String displayValue(Context context) {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        String unit = prefs.getString("units", "mgdl");
-        DecimalFormat df = new DecimalFormat("#");
-        df.setMaximumFractionDigits(0);
-
-        if (calculated_value >= 400) {
+        final String unit = Pref.getString("units", "mgdl");
+        final DecimalFormat df = new DecimalFormat("#");
+        final double this_value = getDg_mgdl();
+        if (this_value >= 400) {
             return "HIGH";
-        } else if (calculated_value >= 40) {
-            if (unit.compareTo("mgdl") == 0) {
+        } else if (this_value >= 40) {
+            if (unit.equals("mgdl")) {
                 df.setMaximumFractionDigits(0);
-                return df.format(calculated_value);
+                return df.format(this_value);
             } else {
                 df.setMaximumFractionDigits(1);
-                return df.format(calculated_value_mmol());
+                return df.format(mmolConvert(this_value));
             }
         } else {
             return "LOW";
@@ -429,6 +429,10 @@ public class BgReading extends Model implements ShareUploadableBg {
     }
 
 
+    public static BgReading getForPreciseTimestamp(long timestamp, long precision) {
+        return getForPreciseTimestamp(timestamp, precision, true);
+    }
+
 
     public static BgReading getForPreciseTimestamp(long timestamp, double precision) {
         return getForPreciseTimestamp(timestamp, precision, true);
@@ -524,14 +528,20 @@ public class BgReading extends Model implements ShareUploadableBg {
                 //context.startService(new Intent(context, Notifications.class));
                 // allow this instead to be fired inside handleNewBgReading when noise will have been injected already
             }
-            bgReading.injectNoise(true); // Add noise parameter for nightscout
-            bgReading.injectDisplayGlucose(BestGlucose.getDisplayGlucose()); // Add display glucose for nightscout
-            BgSendQueue.handleNewBgReading(bgReading, "create", context, Home.get_follower(), quick);
+
+            bgReading.postProcess(quick);
+
         }
 
         Log.i("BG GSON: ", bgReading.toS());
 
         return bgReading;
+    }
+
+    public void postProcess(final boolean quick) {
+        injectNoise(true); // Add noise parameter for nightscout
+        injectDisplayGlucose(BestGlucose.getDisplayGlucose()); // Add display glucose for nightscout
+        BgSendQueue.handleNewBgReading(this, "create", xdrip.getAppContext(), Home.get_follower(), quick);
     }
 
     public static BgReading createFromRawNoSave(Sensor sensor, Calibration calibration, double raw_data, double filtered_data, long timestamp) {
@@ -824,6 +834,14 @@ public class BgReading extends Model implements ShareUploadableBg {
         return reading != null && ((JoH.tsl() - reading.timestamp) < millis);
     }
 
+    public boolean within_millis(final long millis) {
+        return ((JoH.tsl() - this.timestamp) < millis);
+    }
+
+    public boolean isStale() {
+        return !within_millis(Home.stale_data_millis());
+    }
+
     public static BgReading last()
     {
         return BgReading.last(Home.get_follower());
@@ -835,6 +853,7 @@ public class BgReading extends Model implements ShareUploadableBg {
                     .from(BgReading.class)
                     .where("calculated_value != 0")
                     .where("raw_data != 0")
+              //      .where("timestamp <= ?", JoH.tsl())
                     .orderBy("timestamp desc")
                     .executeSingle();
         } else {
@@ -845,6 +864,7 @@ public class BgReading extends Model implements ShareUploadableBg {
                         .where("Sensor = ? ", sensor.getId())
                         .where("calculated_value != 0")
                         .where("raw_data != 0")
+                //        .where("timestamp <= ?", JoH.tsl())
                         .orderBy("timestamp desc")
                         .executeSingle();
             }
@@ -869,6 +889,7 @@ public class BgReading extends Model implements ShareUploadableBg {
                 .from(BgReading.class)
                 .where("calculated_value != 0")
                 .where("raw_data != 0")
+            //    .where("timestamp <= ?", JoH.tsl())
                 .orderBy("timestamp desc")
                 .executeSingle();
     }
@@ -884,6 +905,7 @@ public class BgReading extends Model implements ShareUploadableBg {
                     .from(BgReading.class)
                     .where("calculated_value != 0")
                     .where("raw_data != 0")
+            //        .where("timestamp <= ?", JoH.tsl())
                     .orderBy("timestamp desc")
                     .limit(number)
                     .execute();
@@ -897,6 +919,7 @@ public class BgReading extends Model implements ShareUploadableBg {
                     .where("Sensor = ? ", sensor.getId())
                     .where("calculated_value != 0")
                     .where("raw_data != 0")
+              //      .where("timestamp <= ?", JoH.tsl())
                     .orderBy("timestamp desc")
                     .limit(number)
                     .execute();
@@ -1009,12 +1032,12 @@ public class BgReading extends Model implements ShareUploadableBg {
     }
 
     public static BgReading readingNearTimeStamp(double startTime) {
-        final double margin = (4 * 60*1000);
+        final double margin = (4 * 60 * 1000);
         final DecimalFormat df = new DecimalFormat("#");
         df.setMaximumFractionDigits(1);
         return new Select()
                 .from(BgReading.class)
-                .where("timestamp >= " + df.format(startTime-margin))
+                .where("timestamp >= " + df.format(startTime - margin))
                 .where("timestamp <= " + df.format(startTime + margin))
                 .where("calculated_value != 0")
                 .where("raw_data != 0")
@@ -1121,6 +1144,7 @@ public class BgReading extends Model implements ShareUploadableBg {
     }
 
     public static final double SPECIAL_G5_PLACEHOLDER = -0.1597;
+    public static final double SPECIAL_FOLLOWER_PLACEHOLDER = -0.1486;
 
     public static BgReading bgReadingInsertFromG5(double calculated_value, long timestamp) {
         return bgReadingInsertFromG5(calculated_value, timestamp, null);
@@ -1226,7 +1250,7 @@ public class BgReading extends Model implements ShareUploadableBg {
     }
 
     public static BgReading bgReadingInsertFromJson(String json, boolean do_notification) {
-        return bgReadingInsertFromJson(json, do_notification, false);
+        return bgReadingInsertFromJson(json, do_notification, WholeHouse.isEnabled() ? true : false);
     }
 
     public static BgReading bgReadingInsertFromJson(String json, boolean do_notification, boolean force_sensor) {
@@ -1245,6 +1269,10 @@ public class BgReading extends Model implements ShareUploadableBg {
                             bgr.sensor = forced_sensor;
                             bgr.sensor_uuid = forced_sensor.uuid;
                         }
+                    }
+                    final long now = JoH.tsl();
+                    if (bgr.timestamp > now) {
+                        UserError.Log.wtf(TAG, "Received a bg reading that appears to be in the future: " + JoH.dateTimeText(bgr.timestamp) + " vs " + JoH.dateTimeText(now));
                     }
                     bgr.save();
                     if (do_notification) {
@@ -1934,7 +1962,10 @@ public class BgReading extends Model implements ShareUploadableBg {
         }
 
         Boolean bg_unclear_readings_alerts = prefs.getBoolean("bg_unclear_readings_alerts", false);
-        if (!bg_unclear_readings_alerts || (!DexCollectionType.hasFiltered())) {
+        if (!bg_unclear_readings_alerts
+                || !DexCollectionType.hasFiltered()
+                || Ob1G5CollectionService.usingG6()
+                || Ob1G5CollectionService.usingNativeMode()) {
             Log.d(TAG_ALERT, "getUnclearReading returned false since feature is disabled");
             UserNotification.DeleteNotificationByType("bg_unclear_readings_alert");
             return false;

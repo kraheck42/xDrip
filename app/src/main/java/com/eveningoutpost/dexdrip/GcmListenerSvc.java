@@ -34,10 +34,12 @@ import com.eveningoutpost.dexdrip.UtilityModels.NanoStatus;
 import com.eveningoutpost.dexdrip.UtilityModels.Pref;
 import com.eveningoutpost.dexdrip.UtilityModels.PumpStatus;
 import com.eveningoutpost.dexdrip.UtilityModels.StatusItem;
+import com.eveningoutpost.dexdrip.UtilityModels.WholeHouse;
 import com.eveningoutpost.dexdrip.utils.CheckBridgeBattery;
 import com.eveningoutpost.dexdrip.utils.CipherUtils;
 import com.eveningoutpost.dexdrip.utils.Preferences;
 import com.eveningoutpost.dexdrip.utils.WebAppHelper;
+import com.eveningoutpost.dexdrip.utils.bt.Mimeograph;
 import com.eveningoutpost.dexdrip.wearintegration.ExternalStatusService;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.RemoteMessage;
@@ -73,7 +75,7 @@ public class GcmListenerSvc extends JamListenerSvc {
     }
 
     @Override
-    protected Intent zzaa(Intent inteceptedIntent) {
+    protected Intent zzD(Intent inteceptedIntent) {
         // intercept and fix google play services wakelocking bug
         try {
             if (!Pref.getBooleanDefaultFalse("excessive_wakelocks")) {
@@ -84,7 +86,7 @@ public class GcmListenerSvc extends JamListenerSvc {
         } catch (Exception e) {
             UserError.Log.wtf(TAG, "Error patching play services: " + e);
         }
-        return super.zzaa(inteceptedIntent);
+        return super.zzD(inteceptedIntent);
     }
 
     @Override
@@ -451,8 +453,8 @@ public class GcmListenerSvc extends JamListenerSvc {
                     }
                 } else if (action.equals("bgs")) {
                     Log.i(TAG, "Received BG packet(s)");
-                    if (Home.get_follower()) {
-                        String bgs[] = payload.split("\\^");
+                    if (Home.get_follower() || WholeHouse.isEnabled()) {
+                        final String bgs[] = payload.split("\\^");
                         for (String bgr : bgs) {
                             BgReading.bgReadingInsertFromJson(bgr);
                         }
@@ -486,11 +488,18 @@ public class GcmListenerSvc extends JamListenerSvc {
                 } else if (action.equals("bfr")) {
                     if (Pref.getBooleanDefaultFalse("plus_follow_master")) {
                         Log.i(TAG, "Processing backfill location request as we are master");
-                        GcmActivity.syncBGTable2();
+                        final long remoteRecent = JoH.tolerantParseLong(payload, 0);
+                        final BgReading bgReading = BgReading.last();
+                        if (bgReading != null && bgReading.timestamp > remoteRecent) {
+                            GcmActivity.syncBGTable2();
+                        } else {
+                            // TODO reduce logging priority
+                            UserError.Log.e(TAG, "We do not have any more recent data to offer than: " + (bgReading != null ? JoH.dateTimeText(bgReading.timestamp) : "no data"));
+                        }
                     }
                 } else if (action.equals("sensorupdate")) {
                     Log.i(TAG, "Received sensorupdate packet(s)");
-                    if (Home.get_follower()) {
+                    if (Home.get_follower() || WholeHouse.isEnabled()) {
                         GcmActivity.upsertSensorCalibratonsFromJson(payload);
                     } else {
                         Log.e(TAG, "Received sensorupdate packets but we are not set as a follower");
@@ -499,6 +508,10 @@ public class GcmListenerSvc extends JamListenerSvc {
                     if (Home.get_master()) {
                         Log.i(TAG, "Received request for sensor calibration update");
                         GcmActivity.syncSensor(Sensor.currentSensor(), false);
+                    }
+                } else if (action.equals("mimg")) {
+                    if (Home.get_master() && WholeHouse.isLive()) {
+                        Mimeograph.putXferFromJson(payload);
                     }
                 } else if (action.equals("btmm")) {
                     if (Home.get_master_or_follower() && Home.follower_or_accept_follower()) {

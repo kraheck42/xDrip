@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.os.PowerManager;
 import android.preference.PreferenceManager;
 
+import com.eveningoutpost.dexdrip.Models.SensorSanity;
 import com.eveningoutpost.dexdrip.Models.UserError.Log;
 import com.eveningoutpost.dexdrip.ImportedLibraries.usbserial.util.HexDump;
 import com.eveningoutpost.dexdrip.Models.BgReading;
@@ -33,6 +34,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static com.eveningoutpost.dexdrip.UtilityModels.Constants.LIBRE_MULTIPLIER;
+import static com.eveningoutpost.dexdrip.xdrip.gs;
 
 /**
  * Created by jamorham on 04/09/2016.
@@ -44,7 +46,7 @@ public class LibreAlarmReceiver extends BroadcastReceiver {
     private static final boolean debug = false;
     private static final boolean d = true;
     private static final boolean use_raw_ = true;
-    private static final double segmentation_timeslice = Constants.MINUTE_IN_MS * 4.5;
+    private static final long segmentation_timeslice = (long)(Constants.MINUTE_IN_MS * 4.5);
     private static SharedPreferences prefs;
     private static long oldest = -1;
     private static long newest = -1;
@@ -77,7 +79,7 @@ public class LibreAlarmReceiver extends BroadcastReceiver {
                 if ((gd.realDate < oldest) || (oldest == -1)) oldest = gd.realDate;
                 if ((gd.realDate > newest) || (newest == -1)) newest = gd.realDate;
 
-                if (BgReading.getForPreciseTimestamp(gd.realDate, segmentation_timeslice) == null) {
+                if (BgReading.getForPreciseTimestamp(gd.realDate, segmentation_timeslice, false) == null) {
                     Log.d(TAG, "Creating bgreading at: " + JoH.dateTimeText(gd.realDate));
                     BgReading.create(converted, converted, xdrip.getAppContext(), gd.realDate, quick); // quick lite insert
                 } else {
@@ -150,11 +152,11 @@ public class LibreAlarmReceiver extends BroadcastReceiver {
                                 try {
                                     final ReadingData.TransferObject object =
                                             new Gson().fromJson(data, ReadingData.TransferObject.class);
-                                    processReadingDataTransferObject(object, JoH.tsl(), "LibreAlarm");
+                                    processReadingDataTransferObject(object, JoH.tsl(), "LibreAlarm", false);
                                     Log.d(TAG, "At End: Oldest : " + JoH.dateTimeText(oldest_cmp) + " Newest : " + JoH.dateTimeText(newest_cmp));
                                 } catch (Exception e) {
                                     Log.wtf(TAG, "Could not process data structure from LibreAlarm: " + e.toString());
-                                    JoH.static_toast_long("LibreAlarm data format appears incompatible!? protocol changed or no data?");
+                                    JoH.static_toast_long(gs(R.string.librealarm_data_format_appears_incompatible_protocol_changed_or_no_data));
                                 }
                                 break;
 
@@ -171,19 +173,19 @@ public class LibreAlarmReceiver extends BroadcastReceiver {
         }.start();
     }
 
-    public static void processReadingDataTransferObject(ReadingData.TransferObject object, long CaptureDateTime, String tagid) {
+    public static void processReadingDataTransferObject(ReadingData.TransferObject object, long CaptureDateTime, String tagid, boolean allowUpload) {
     	Log.i(TAG, "Data that was recieved from librealarm is " + HexDump.dumpHexString(object.data.raw_data));
     	// Save raw block record (we start from block 0)
-        LibreBlock.createAndSave(tagid, CaptureDateTime, object.data.raw_data, 0);
+        LibreBlock.createAndSave(tagid, CaptureDateTime, object.data.raw_data, 0, allowUpload);
 
         if(Pref.getBooleanDefaultFalse("external_blukon_algorithm")) {
-        	if(object.data.raw_data == null) {
-        		Log.e(TAG, "Please update LibreAlarm to use OOP algorithm");
-        		JoH.static_toast_long("Please update LibreAlarm to use OOP algorithm");
-        		return;
-        	}
-        	LibreOOPAlgorithm.SendData(object.data.raw_data, CaptureDateTime);
-        	return;
+            if(object.data.raw_data == null) {
+                Log.e(TAG, "Please update LibreAlarm to use OOP algorithm");
+                JoH.static_toast_long(gs(R.string.please_update_librealarm_to_use_oop_algorithm));
+                return;
+            }
+            LibreOOPAlgorithm.SendData(object.data.raw_data, CaptureDateTime);
+            return;
         }
         CalculateFromDataTransferObject(object, use_raw_);
     }
@@ -196,19 +198,19 @@ public class LibreAlarmReceiver extends BroadcastReceiver {
             Collections.sort(mTrend);
             final long thisSensorAge = mTrend.get(mTrend.size() - 1).sensorTime;
             sensorAge = Pref.getInt("nfc_sensor_age", 0);
-            if (thisSensorAge > sensorAge) {
+            if (thisSensorAge > sensorAge || SensorSanity.allowTestingWithDeadSensor()) {
                 sensorAge = thisSensorAge;
                 Pref.setInt("nfc_sensor_age", (int) sensorAge);
                 Pref.setBoolean("nfc_age_problem", false);
                 Log.d(TAG, "Sensor age advanced to: " + thisSensorAge);
             } else if (thisSensorAge == sensorAge) {
                 Log.wtf(TAG, "Sensor age has not advanced: " + sensorAge);
-                JoH.static_toast_long("Sensor clock has not advanced!");
+                JoH.static_toast_long(gs(R.string.sensor_clock_has_not_advanced));
                 Pref.setBoolean("nfc_age_problem", true);
                 return; // do not try to insert again
             } else {
                 Log.wtf(TAG, "Sensor age has gone backwards!!! " + sensorAge);
-                JoH.static_toast_long("Sensor age has gone backwards!!");
+                JoH.static_toast_long(gs(R.string.sensor_age_has_gone_backwards));
                 sensorAge = thisSensorAge;
                 Pref.setInt("nfc_sensor_age", (int) sensorAge);
                 Pref.setBoolean("nfc_age_problem", true);

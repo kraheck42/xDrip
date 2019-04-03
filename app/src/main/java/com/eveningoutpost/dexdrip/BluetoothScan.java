@@ -58,6 +58,7 @@ import lecho.lib.hellocharts.util.ChartUtils;
 
 import static com.eveningoutpost.dexdrip.Home.startWatchUpdaterService;
 import static com.eveningoutpost.dexdrip.cgm.medtrum.Medtrum.getDeviceInfoStringFromLegacy;
+import static com.eveningoutpost.dexdrip.xdrip.gs;
 
 @TargetApi(android.os.Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class BluetoothScan extends ListActivityWithMenu {
@@ -158,7 +159,7 @@ public class BluetoothScan extends ListActivityWithMenu {
 
     private boolean doScan() {
         BluetoothManager bluetooth_manager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-        Toast.makeText(this, "Scanning", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, gs(R.string.scanning), Toast.LENGTH_LONG).show();
         if (bluetooth_manager == null) {
             Toast.makeText(this, "This device does not seem to support bluetooth", Toast.LENGTH_LONG).show();
             return true;
@@ -616,9 +617,12 @@ public class BluetoothScan extends ListActivityWithMenu {
 
             final BluetoothDevice device = mLeDevices.get(i);
             if (device != null) {
-                final String deviceName = device.getName() != null ? device.getName() : "";
-                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-                if (prefs.getString("last_connected_device_address", "").compareTo(device.getAddress()) == 0) {
+                String deviceName = device.getName();
+                if (deviceName == null) {
+                    deviceName = "";
+                }
+                //SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                if (Pref.getString("last_connected_device_address", "").equalsIgnoreCase(device.getAddress())) {
                     viewHolder.deviceName.setTextColor(ChartUtils.COLOR_BLUE);
                     viewHolder.deviceAddress.setTextColor(ChartUtils.COLOR_BLUE);
                 }

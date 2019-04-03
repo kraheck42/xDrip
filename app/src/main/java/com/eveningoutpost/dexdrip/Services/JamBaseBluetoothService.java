@@ -73,8 +73,8 @@ public abstract class JamBaseBluetoothService extends Service {
         }).start();
     }
 
-    protected synchronized void automata() {
-        throw new RuntimeException("automata stub");
+    protected synchronized boolean automata() {
+        throw new RuntimeException("automata stub - not implemented!");
     }
 
     protected synchronized void extendWakeLock(long ms) {
@@ -123,13 +123,13 @@ public abstract class JamBaseBluetoothService extends Service {
         }
     }
 
-    private static class GattRefreshOperation implements RxBleCustomOperation<Void> {
+    protected static class GattRefreshOperation implements RxBleCustomOperation<Void> {
         private long delay_ms = 500;
 
         GattRefreshOperation() {
         }
 
-        GattRefreshOperation(long delay_ms) {
+        public GattRefreshOperation(long delay_ms) {
             this.delay_ms = delay_ms;
         }
 

@@ -2,6 +2,7 @@ package com.eveningoutpost.dexdrip.eassist;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -38,6 +39,8 @@ import static android.provider.ContactsContract.CommonDataKinds.Phone;
 import static com.eveningoutpost.dexdrip.eassist.EmergencyAssist.EMERGENCY_ASSIST_PREF;
 import static com.eveningoutpost.dexdrip.eassist.EmergencyAssist.EMERGENCY_HIGH_MINS_PREF;
 import static com.eveningoutpost.dexdrip.eassist.EmergencyAssist.EMERGENCY_LOW_MINS_PREF;
+
+import static com.eveningoutpost.dexdrip.xdrip.gs;
 
 /*
  * jamorham
@@ -99,7 +102,7 @@ public class EmergencyAssistActivity extends BaseAppCompatActivity {
                     Manifest.permission.READ_CONTACTS)
                     != PackageManager.PERMISSION_GRANTED) {
                 final Activity activity = this;
-                JoH.show_ok_dialog(activity, "Please Allow Permission", "Need contacts permission to select message recipients", new Runnable() {
+                JoH.show_ok_dialog(activity, gs(R.string.please_allow_permission), gs(R.string.need_contacts_permission_to_select_message_recipients), new Runnable() {
                     @Override
                     public void run() {
                         ActivityCompat.requestPermissions(activity,
@@ -122,7 +125,7 @@ public class EmergencyAssistActivity extends BaseAppCompatActivity {
             if (!isSMSPermissionGranted()) {
                 if (JoH.ratelimit("check-sms-permission", 2)) {
                     final Activity activity = this;
-                    JoH.show_ok_dialog(activity, "Please Allow Permission", "Need SMS permission to send text messages to your emergency contacts."
+                    JoH.show_ok_dialog(activity, gs(R.string.please_allow_permission), "Need SMS permission to send text messages to your emergency contacts."
                             + "\n\n"
                             + "Warning this can cost money at normal telecoms rates!", () -> ActivityCompat.requestPermissions(activity,
                             new String[]{Manifest.permission.SEND_SMS}, MY_PERMISSIONS_REQUEST_SMS));
@@ -151,9 +154,13 @@ public class EmergencyAssistActivity extends BaseAppCompatActivity {
 
     public void chooseContact(View v) {
         if (checkContactsPermission()) {
-            final Intent intent = new Intent(Intent.ACTION_PICK, Uri.parse("content://contacts"));
-            intent.setType(ContactsContract.CommonDataKinds.Phone.CONTENT_TYPE);
-            startActivityForResult(intent, CONTACT_REQUEST_CODE);
+            try {
+                final Intent intent = new Intent(Intent.ACTION_PICK, Uri.parse("content://contacts"));
+                intent.setType(ContactsContract.CommonDataKinds.Phone.CONTENT_TYPE);
+                startActivityForResult(intent, CONTACT_REQUEST_CODE);
+            } catch (ActivityNotFoundException e) {
+                JoH.static_toast_long("Device doesn't have a contact picker!?");
+            }
         }
     }
 
